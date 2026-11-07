@@ -1,0 +1,10 @@
+# Este repositorio contiene el proyecto React en una subcarpeta.
+[build]
+  base = "gestion-citas-frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
