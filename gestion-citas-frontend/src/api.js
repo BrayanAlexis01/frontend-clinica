@@ -1,11 +1,13 @@
 export const API_BASE = (import.meta.env.VITE_API_URL || 'https://sistema-gestion-citas.onrender.com').replace(/\/$/, '');
 export const ROUTES = {
   login: '/api/auth/login',
-  registro: '/api/auth/registro',
+  registro: '/api/auth/register',
   especialidades: '/api/especialidades',
   medicos: '/api/medicos',
+  medicosDisponibles: '/api/medicos/disponibles',
   citas: '/api/citas',
-  disponibilidad: '/api/disponibilidad',
+  misCitas: '/api/citas/mis-citas',
+  disponibilidad: '/api/citas/disponibilidad',
 };
 const TOKEN_KEY = 'acapulco_access_token';
 export const getToken = () => sessionStorage.getItem(TOKEN_KEY);
@@ -25,11 +27,12 @@ export async function request(path, { method = 'GET', body, auth = true, ...opti
   const raw = await response.text();
   let data;
   try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
-  if (!response.ok) throw new Error(typeof data === 'string' ? data : data?.message || data?.error || `Error HTTP ${response.status}`);
-  return data;
+  if (!response.ok || data?.success === false) throw new Error(typeof data === 'string' ? data : data?.message || data?.error || `Error HTTP ${response.status}`);
+  return data && typeof data === 'object' && 'data' in data ? data.data : data;
 }
 export function asList(data) {
   if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.contenido)) return data.contenido;
   if (Array.isArray(data?.content)) return data.content;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.items)) return data.items;
@@ -59,10 +62,16 @@ export const services = {
   login: body => request(ROUTES.login, { method: 'POST', body, auth: false }),
   registro: body => request(ROUTES.registro, { method: 'POST', body, auth: false }),
   especialidades: () => request(ROUTES.especialidades),
-  medicos: () => request(ROUTES.medicos),
-  disponibilidad: (medicoId, fecha) => request(`${ROUTES.disponibilidad}?medicoId=${encodeURIComponent(medicoId)}&fecha=${encodeURIComponent(fecha)}`),
-  citas: () => request(ROUTES.citas),
-  crearCita: body => request(ROUTES.citas, { method: 'POST', body }),
-  cancelar: id => request(`${ROUTES.citas}/${encodeURIComponent(id)}/cancelar`, { method: 'PATCH' }),
-  reprogramar: (id, body) => request(`${ROUTES.citas}/${encodeURIComponent(id)}/reprogramar`, { method: 'PATCH', body }),
+  medicos: () => request(ROUTES.medicos + '?pagina=0&tamano=100'),
+  medicosDisponibles: especialidadId => request(ROUTES.medicosDisponibles + '?especialidadId=' + encodeURIComponent(especialidadId)),
+  disponibilidad: (medicoId, fecha) => request(ROUTES.disponibilidad + '?medicoId=' + encodeURIComponent(medicoId) + '&fecha=' + encodeURIComponent(fecha) + '&soloLibres=true'),
+  citas: () => request(ROUTES.misCitas + '?pagina=0&tamano=100'),
+  crearCita: body => request(ROUTES.citas, { method: 'POST', body: {
+    medicoId: Number(body.medicoId),
+    fechaHora: body.fecha + 'T' + body.hora + ':00',
+    tipo: 'CONSULTA',
+    motivo: body.motivo || undefined
+  } }),
+  cancelar: (id, motivo) => request(ROUTES.citas + '/' + encodeURIComponent(id) + '/cancelar', { method: 'PATCH', body: { motivo } }),
+  reprogramar: (id, body) => request(ROUTES.citas + '/' + encodeURIComponent(id) + '/reprogramar', { method: 'PATCH', body: { nuevaFechaHora: body.fecha + 'T' + body.hora + ':00' } }),
 };
