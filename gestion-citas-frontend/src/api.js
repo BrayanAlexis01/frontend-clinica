@@ -35,11 +35,32 @@ export function asList(data) {
   if (Array.isArray(data?.items)) return data.items;
   return [];
 }
+export function asAvailableTimes(data) {
+  const source = Array.isArray(data) ? data : [
+    data?.horariosDisponibles, data?.horasDisponibles, data?.slotsDisponibles,
+    data?.availableSlots, data?.disponibilidad, data?.content
+  ].find(Array.isArray);
+  if (!source) return [];
+  const times = source.filter(item => {
+    if (typeof item === 'string') return true;
+    if (!item || typeof item !== 'object') return false;
+    if (item.disponible === false || item.available === false || item.ocupado === true || item.reservado === true || item.activo === false) return false;
+    if (item.estado && !['DISPONIBLE', 'LIBRE', 'AVAILABLE'].includes(String(item.estado).toUpperCase())) return false;
+    return true;
+  }).map(item => {
+    const value = typeof item === 'string' ? item : item.hora ?? item.horaInicio ?? item.hora_inicio ?? item.inicio ?? item.fechaHora;
+    if (typeof value !== 'string') return '';
+    const match = value.match(/(?:^|T)(\d{2}):(\d{2})(?::\d{2})?/);
+    return match && Number(match[1]) < 24 && Number(match[2]) < 60 ? match[1] + ':' + match[2] : '';
+  }).filter(Boolean);
+  return [...new Set(times)].sort();
+}
 export const services = {
   login: body => request(ROUTES.login, { method: 'POST', body, auth: false }),
   registro: body => request(ROUTES.registro, { method: 'POST', body, auth: false }),
   especialidades: () => request(ROUTES.especialidades),
   medicos: () => request(ROUTES.medicos),
+  disponibilidad: (medicoId, fecha) => request(`${ROUTES.disponibilidad}?medicoId=${encodeURIComponent(medicoId)}&fecha=${encodeURIComponent(fecha)}`),
   citas: () => request(ROUTES.citas),
   crearCita: body => request(ROUTES.citas, { method: 'POST', body }),
   cancelar: id => request(`${ROUTES.citas}/${encodeURIComponent(id)}/cancelar`, { method: 'PATCH' }),
