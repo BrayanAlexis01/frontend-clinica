@@ -1,4 +1,3 @@
-# Este repositorio contiene el proyecto React en una subcarpeta.
 [build]
   base = "gestion-citas-frontend"
   command = "npm run build"

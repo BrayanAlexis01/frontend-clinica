@@ -1,8 +1,3 @@
-/**
- * Adaptador de la API. IMPORTANTE: estas rutas son orientativas y deben contrastarse
- * contra /swagger-ui/index.html o /v3/api-docs del backend real antes de producción.
- * No se guardan datos médicos reales en el navegador.
- */
 export const API_BASE = (import.meta.env.VITE_API_URL || 'https://sistema-gestion-citas.onrender.com').replace(/\/$/, '');
 export const ROUTES = {
   login: '/api/auth/login',
